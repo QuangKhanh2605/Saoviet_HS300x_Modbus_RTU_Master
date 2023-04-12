@@ -1,0 +1,1 @@
+i2c_hs300x_modbusrtu\startup_stm32l151xc.o: startup_stm32l151xc.s
