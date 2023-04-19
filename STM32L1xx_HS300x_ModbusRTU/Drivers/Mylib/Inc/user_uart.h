@@ -9,7 +9,7 @@ typedef struct
 	UART_HandleTypeDef* huart;
 	uint8_t buffer;
 	uint16_t countBuffer;
-	uint8_t sim_rx[10];
+	uint8_t sim_rx[20];
 }UART_BUFFER;
 
 int8_t Check_CountBuffer_Complete_Uart(UART_BUFFER *rx_uart);

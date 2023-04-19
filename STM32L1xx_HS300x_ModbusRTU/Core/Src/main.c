@@ -15,6 +15,11 @@
   *
   ******************************************************************************
   */
+/*
+
+Add "HAL_SYSTICK_IRQHandler();" To "Systick_Handler" In "stm32L1xx_it.c"
+
+*/
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
@@ -50,6 +55,11 @@ UART_HandleTypeDef huart2;
 UART_HandleTypeDef huart3;
 
 /* USER CODE BEGIN PV */
+uint32_t Time_Sampling = 1000;
+
+uint32_t GetTick_Ms=0;
+uint8_t check_GetTick_Ms=0;
+
 int16_t Tem=0;
 int16_t Humi=0;
 
@@ -58,8 +68,10 @@ char Tem_Humi[16];
 uint8_t aTemperature[2];
 uint8_t aHumidity[2];
 
+uint16_t temRx=0;
+uint16_t humiRx=0;
+
 uint8_t address=0;
-uint32_t check_getTick_sendData=0;
 
 UART_BUFFER sUart2;
 /* USER CODE END PV */
@@ -71,8 +83,8 @@ static void MX_I2C2_Init(void);
 static void MX_USART3_UART_Init(void);
 static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
-uint16_t temRx=0;
-uint16_t humiRx=0;
+void HAL_SYSTICK_Callback(void);
+void Modbus_RTU_Master(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -132,45 +144,28 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-		if(check_getTick_sendData > HAL_GetTick()) check_getTick_sendData=0;
-		if(HAL_GetTick() - check_getTick_sendData > 1000) 
+		if(GetTick_Ms>HAL_GetTick()) GetTick_Ms=0;
+		if(HAL_GetTick()-GetTick_Ms>Time_Sampling) 
 		{
 			HS300X_Start_Measurement(&hi2c2, (int16_t*)&Tem, (int16_t*)&Humi);
-			sprintf(Tem_Humi,"Tem:%d Humi:%d",Tem, Humi);
+			sprintf(Tem_Humi,"T1:%d  T2:%d",Tem,temRx);
 			HAL_UART_Transmit(&huart3, (uint8_t *)Tem_Humi, (uint16_t)strlen(Tem_Humi), 1000);
 			HAL_UART_Transmit(&huart3,(uint8_t *)"\r",(uint16_t)strlen("\r"),1000);
 			aTemperature[0] = Tem >> 8;
 			aTemperature[1]= (Tem << 8) >> 8;
 			aHumidity[0]=0x00;
 			aHumidity[1]=(Humi << 8) >> 8;
-			check_getTick_sendData = HAL_GetTick();
 			uint8_t Frame[8];
 			sData sFrame;
 			sFrame.Data_a8 = Frame;
-			ModRTU_Master_Read_Frame(&sFrame, 0x66, 0x03, 0x01, 0x02);
+			ModRTU_Master_Read_Frame(&sFrame, 0x1A, 0x03, 0x02, 1);
 			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET);
 			HAL_UART_Transmit(&huart2, sFrame.Data_a8, sFrame.Length_u16, 1000);
 			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
+			GetTick_Ms = HAL_GetTick();
 		}
 		
-		if(Check_CountBuffer_Complete_Uart(&sUart2)==1)
-		{
-			uint16_t addressRx=sUart2.sim_rx[0];
-			uint16_t funCode=sUart2.sim_rx[1];
-			if(addressRx == 0x66)
-			{
-				if(funCode == 0x03)
-				{
-					uint16_t CRC_rx = sUart2.sim_rx[sUart2.countBuffer-1] << 8 | sUart2.sim_rx[sUart2.countBuffer-2];
-					uint16_t CRC_check = ModRTU_CRC(&sUart2.sim_rx[0], sUart2.countBuffer-2);
-					if(CRC_check == CRC_rx)
-					{
-						temRx= sUart2.sim_rx[6]<<8 | sUart2.sim_rx[7];
-					}
-				}
-			}
-			Delete_Buffer(&sUart2);
-		}
+		Modbus_RTU_Master();
   }
   /* USER CODE END 3 */
 }
@@ -356,6 +351,29 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+void Modbus_RTU_Master(void)
+{
+	if(Check_CountBuffer_Complete_Uart(&sUart2)==1)
+	{
+		uint16_t addressRx=sUart2.sim_rx[0];
+		uint16_t funCode=sUart2.sim_rx[1];
+		if(addressRx == 0x1A)
+		{
+			if(funCode == 0x03)
+			{
+				uint16_t CRC_rx = sUart2.sim_rx[sUart2.countBuffer-1] << 8 | sUart2.sim_rx[sUart2.countBuffer-2];
+				uint16_t CRC_check = ModRTU_CRC(&sUart2.sim_rx[0], sUart2.countBuffer-2);
+				if(CRC_check == CRC_rx)
+				{
+					temRx= sUart2.sim_rx[3]<<8 | sUart2.sim_rx[4];
+				}
+			}
+		}
+		Delete_Buffer(&sUart2);
+	}
+}
+
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
   /* Prevent unused argument(s) compilation warning */
@@ -369,6 +387,15 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
   /* NOTE: This function should not be modified, when the callback is needed,
            the HAL_UART_RxCpltCallback could be implemented in the user file
    */
+}
+void HAL_SYSTICK_Callback(void)
+{
+//	GetTick_Ms++;
+//	if(GetTick_Ms > Time_Sampling)
+//	{
+//		check_GetTick_Ms=1;
+//		GetTick_Ms=0;
+//	}
 }
 /* USER CODE END 4 */
 
