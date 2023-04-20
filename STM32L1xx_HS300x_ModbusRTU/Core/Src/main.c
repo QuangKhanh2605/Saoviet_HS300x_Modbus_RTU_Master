@@ -63,7 +63,7 @@ uint8_t check_GetTick_Ms=0;
 int16_t Tem=0;
 int16_t Humi=0;
 
-char Tem_Humi[16];
+char Tem_Humi[33];
 
 uint8_t aTemperature[2];
 uint8_t aHumidity[2];
@@ -85,6 +85,8 @@ static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
 void HAL_SYSTICK_Callback(void);
 void Modbus_RTU_Master(void);
+void FLASH_Earse(uint32_t addr_ready_earse);
+void FLASH_WriteNews(uint32_t addr_start_write,char News[]);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -96,6 +98,7 @@ void Modbus_RTU_Master(void);
   * @brief  The application entry point.
   * @retval int
   */
+char news[32];
 int main(void)
 {
   /* USER CODE BEGIN 1 */
@@ -127,13 +130,14 @@ int main(void)
 	HAL_UART_Receive_IT(sUart2.huart,&sUart2.buffer,1);
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_RESET);
 	//HS300X_Init(&hi2c1, TM, HU);
-	for(int i=1;i<128;i++)
-	{
-		if(HAL_I2C_IsDeviceReady(&hi2c2, i<<1, 5,5) == HAL_OK)
-		{
-			address=i;
-		}
-	}
+//	for(int i=1;i<128;i++)
+//	{
+//		if(HAL_I2C_IsDeviceReady(&hi2c2, i<<1, 5,5) == HAL_OK)
+//		{
+//			address=i;
+//		}
+//	
+
 	
   /* USER CODE END 2 */
 
@@ -148,7 +152,7 @@ int main(void)
 		if(HAL_GetTick()-GetTick_Ms>Time_Sampling) 
 		{
 			HS300X_Start_Measurement(&hi2c2, (int16_t*)&Tem, (int16_t*)&Humi);
-			sprintf(Tem_Humi,"T1:%d  T2:%d",Tem,temRx);
+			sprintf(Tem_Humi,"T1:%d  H1:%d|T2:%d  H2:%d       ",Tem, Humi, temRx, humiRx);
 			HAL_UART_Transmit(&huart3, (uint8_t *)Tem_Humi, (uint16_t)strlen(Tem_Humi), 1000);
 			HAL_UART_Transmit(&huart3,(uint8_t *)"\r",(uint16_t)strlen("\r"),1000);
 			aTemperature[0] = Tem >> 8;
@@ -158,7 +162,7 @@ int main(void)
 			uint8_t Frame[8];
 			sData sFrame;
 			sFrame.Data_a8 = Frame;
-			ModRTU_Master_Read_Frame(&sFrame, 0x1A, 0x03, 0x02, 1);
+			ModRTU_Master_Read_Frame(&sFrame, 0x1A, 0x03, 0x02, 4);
 			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET);
 			HAL_UART_Transmit(&huart2, sFrame.Data_a8, sFrame.Length_u16, 1000);
 			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
@@ -367,6 +371,7 @@ void Modbus_RTU_Master(void)
 				if(CRC_check == CRC_rx)
 				{
 					temRx= sUart2.sim_rx[3]<<8 | sUart2.sim_rx[4];
+					humiRx= sUart2.sim_rx[9]<<8 | sUart2.sim_rx[10];
 				}
 			}
 		}
@@ -397,6 +402,42 @@ void HAL_SYSTICK_Callback(void)
 //		GetTick_Ms=0;
 //	}
 }
+
+void FLASH_WriteNews(uint32_t addr_start_write,char News[])
+{
+  HAL_FLASH_Unlock();
+	uint8_t length_tmp=0;
+	if(32 %4 ==0) length_tmp=32/4;
+	else length_tmp=32/4+1;
+	uint32_t tmp[length_tmp];
+	for(uint8_t i=0;i<length_tmp;i++)
+	{
+		tmp[i]=News[i];
+		for(uint8_t j=i*4;j<i*4+4;j++)
+		{
+			tmp[i]=tmp[i]<< 8 | News[j];
+		}
+	}
+	for(uint8_t i=0;i<length_tmp;i++)
+	{
+		HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, addr_start_write , tmp[i]);
+		(addr_start_write)=(addr_start_write)+4;
+	}
+  HAL_FLASH_Lock();
+}
+
+void FLASH_Earse(uint32_t addr_ready_earse)
+{
+	HAL_FLASH_Unlock();
+	FLASH_EraseInitTypeDef EraseInit;
+	EraseInit.TypeErase = FLASH_TYPEERASE_PAGES;
+	EraseInit.PageAddress = addr_ready_earse;
+	EraseInit.NbPages = (1024)/256;
+	uint32_t PageError = 0;
+	HAL_FLASHEx_Erase(&EraseInit, &PageError);
+  HAL_FLASH_Lock();
+}
+
 /* USER CODE END 4 */
 
 /**
