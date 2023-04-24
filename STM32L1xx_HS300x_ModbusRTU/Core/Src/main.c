@@ -29,7 +29,6 @@ Add "HAL_SYSTICK_IRQHandler();" To "Systick_Handler" In "stm32L1xx_it.c"
 #include "stdio.h"
 #include "HS300x.h"
 #include "user_uart.h"
-//#include "Conver_Variable.h"
 #include "user_modbus_rtu.h"
 /* USER CODE END Includes */
 
@@ -65,6 +64,9 @@ int16_t Humi=0;
 
 char Tem_Humi[33];
 
+char Tem_Uart_1[100];
+char Tem_Uart_2[100];
+
 uint8_t aTemperature[2];
 uint8_t aHumidity[2];
 
@@ -74,6 +76,12 @@ uint16_t humiRx=0;
 uint8_t address=0;
 
 UART_BUFFER sUart2;
+uint8_t check_address_slave = 0;
+uint16_t T[10]={0,0,0,0,0,0,0,0,0,0};
+uint16_t H[10]={0,0,0,0,0,0,0,0,0,0};
+
+uint32_t getTick_transmit_uart=0;
+uint8_t address_Tx=26;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -84,7 +92,7 @@ static void MX_USART3_UART_Init(void);
 static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
 void HAL_SYSTICK_Callback(void);
-void Modbus_RTU_Master(void);
+uint8_t Modbus_RTU_Master(void);
 void FLASH_Earse(uint32_t addr_ready_earse);
 void FLASH_WriteNews(uint32_t addr_start_write,char News[]);
 /* USER CODE END PFP */
@@ -98,7 +106,7 @@ void FLASH_WriteNews(uint32_t addr_start_write,char News[]);
   * @brief  The application entry point.
   * @retval int
   */
-char news[32];
+int16_t *ptr;
 int main(void)
 {
   /* USER CODE BEGIN 1 */
@@ -140,7 +148,7 @@ int main(void)
 
 	
   /* USER CODE END 2 */
-
+ptr=&Tem;
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -152,24 +160,79 @@ int main(void)
 		if(HAL_GetTick()-GetTick_Ms>Time_Sampling) 
 		{
 			HS300X_Start_Measurement(&hi2c2, (int16_t*)&Tem, (int16_t*)&Humi);
-			sprintf(Tem_Humi,"T1:%d  H1:%d|T2:%d  H2:%d       ",Tem, Humi, temRx, humiRx);
-			HAL_UART_Transmit(&huart3, (uint8_t *)Tem_Humi, (uint16_t)strlen(Tem_Humi), 1000);
+//			sprintf(Tem_Humi,"T1:%d  H1:%d|T2:%d  H2:%d       ",Tem, Humi, temRx, humiRx);
+//			HAL_UART_Transmit(&huart3, (uint8_t *)Tem_Humi, (uint16_t)strlen(Tem_Humi), 1000);
+//			HAL_UART_Transmit(&huart3,(uint8_t *)"\r",(uint16_t)strlen("\r"),1000);
+			sprintf(Tem_Uart_1,"T1:%d | T2:%d | T3:%d | T4:%d | T5:%d",T[0],T[1],T[2],T[3],T[4]);
+			HAL_UART_Transmit(&huart3, (uint8_t *)Tem_Uart_1, (uint16_t)strlen(Tem_Uart_1), 1000);
 			HAL_UART_Transmit(&huart3,(uint8_t *)"\r",(uint16_t)strlen("\r"),1000);
+			HAL_Delay(50);
+			sprintf(Tem_Uart_2,"T6:%d | T7:%d | T8:%d | T9:%d | T10:%d",T[5],T[6],T[7],T[8],T[9]);
+			HAL_UART_Transmit(&huart3, (uint8_t *)Tem_Uart_2, (uint16_t)strlen(Tem_Uart_2), 1000);
+			HAL_UART_Transmit(&huart3,(uint8_t *)"\r\n",(uint16_t)strlen("\r\n"),1000);
+			
+//			sprintf(Tem_Humi,"H1:%d | H2:%d | H3:%d | H4:%d | H5:%d | H6:%d | H7:%d | H8:%d | H9:%d | H10:%d ",H[0],H[1],H[2],H[3],H[4],H[5],H[6],H[7],H[8],H[9]);
+//			HAL_UART_Transmit(&huart3, (uint8_t *)Tem_Humi, (uint16_t)strlen(Tem_Humi), 1000);
+//			HAL_UART_Transmit(&huart3,(uint8_t *)"\r",(uint16_t)strlen("\r"),1000);
+			
 			aTemperature[0] = Tem >> 8;
-			aTemperature[1]= (Tem << 8) >> 8;
-			aHumidity[0]=0x00;
-			aHumidity[1]=(Humi << 8) >> 8;
-			uint8_t Frame[8];
-			sData sFrame;
-			sFrame.Data_a8 = Frame;
-			ModRTU_Master_Read_Frame(&sFrame, 0x1A, 0x03, 0x02, 4);
-			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET);
-			HAL_UART_Transmit(&huart2, sFrame.Data_a8, sFrame.Length_u16, 1000);
-			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
+			aTemperature[1] = Tem ;
+			aHumidity[0] = 0x00;
+			aHumidity[1] = Humi ;
 			GetTick_Ms = HAL_GetTick();
 		}
 		
-		Modbus_RTU_Master();
+		if(getTick_transmit_uart >HAL_GetTick()) getTick_transmit_uart=0;
+		if(HAL_GetTick()- getTick_transmit_uart > 100) 
+		{
+			uint8_t Frame[8];
+			sData sFrame;
+			sFrame.Data_a8 = Frame;
+			ModRTU_Master_Read_Frame(&sFrame, address_Tx, 0x03, 0x02, 4);
+			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET);
+			HAL_UART_Transmit(&huart2, sFrame.Data_a8, sFrame.Length_u16, 1000);
+			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
+			address_Tx++;
+			if(address_Tx > 35) address_Tx=26;
+			getTick_transmit_uart = HAL_GetTick();
+		}
+		
+		check_address_slave = Modbus_RTU_Master();
+		switch(check_address_slave)
+		{
+			case 26:
+				T[0]=temRx; H[0]=humiRx;
+				break;
+			case 27:
+				T[1]=temRx; H[1]=humiRx;
+				break;
+			case 28:
+				T[2]=temRx; H[2]=humiRx;
+				break;
+			case 29:
+				T[3]=temRx; H[3]=humiRx;
+				break;
+			case 30:
+				T[4]=temRx; H[4]=humiRx;
+				break;
+			case 31:
+				T[5]=temRx; H[5]=humiRx;
+				break;
+			case 32:
+				T[6]=temRx; H[6]=humiRx;
+				break;
+			case 33:
+				T[7]=temRx; H[7]=humiRx;
+				break;
+			case 34:
+				T[8]=temRx; H[8]=humiRx;
+				break;
+			case 35:
+				T[9]=temRx; H[9]=humiRx;
+				break;
+			default:
+				break;
+		}
   }
   /* USER CODE END 3 */
 }
@@ -355,14 +418,13 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-
-void Modbus_RTU_Master(void)
+uint8_t Modbus_RTU_Master(void)
 {
 	if(Check_CountBuffer_Complete_Uart(&sUart2)==1)
 	{
 		uint16_t addressRx=sUart2.sim_rx[0];
 		uint16_t funCode=sUart2.sim_rx[1];
-		if(addressRx == 0x1A)
+		if(addressRx <= 35 && addressRx>=26 )
 		{
 			if(funCode == 0x03)
 			{
@@ -372,11 +434,13 @@ void Modbus_RTU_Master(void)
 				{
 					temRx= sUart2.sim_rx[3]<<8 | sUart2.sim_rx[4];
 					humiRx= sUart2.sim_rx[9]<<8 | sUart2.sim_rx[10];
+					Delete_Buffer(&sUart2);
+					return addressRx;
 				}
 			}
 		}
-		Delete_Buffer(&sUart2);
 	}
+	return 0;
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
