@@ -54,18 +54,13 @@ UART_HandleTypeDef huart2;
 UART_HandleTypeDef huart3;
 
 /* USER CODE BEGIN PV */
-uint32_t Time_Sampling = 1000;
+uint32_t Time_Sampling = 3000;
 
 uint32_t GetTick_Ms=0;
 uint8_t check_GetTick_Ms=0;
 
 int16_t Tem=0;
 int16_t Humi=0;
-
-char Tem_Humi[33];
-
-char Tem_Uart_1[100];
-char Tem_Uart_2[100];
 
 uint8_t aTemperature[2];
 uint8_t aHumidity[2];
@@ -80,8 +75,13 @@ uint8_t check_address_slave = 0;
 uint16_t T[10]={0,0,0,0,0,0,0,0,0,0};
 uint16_t H[10]={0,0,0,0,0,0,0,0,0,0};
 
+int16_t AVG_T[10]={0,0,0,0,0,0,0,0,0,0};
+int16_t AVG_H[10]={0,0,0,0,0,0,0,0,0,0};
+
 uint32_t getTick_transmit_uart=0;
 uint8_t address_Tx=26;
+uint32_t count=0;
+char Tem_Humi[33];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -95,6 +95,7 @@ void HAL_SYSTICK_Callback(void);
 uint8_t Modbus_RTU_Master(void);
 void FLASH_Earse(uint32_t addr_ready_earse);
 void FLASH_WriteNews(uint32_t addr_start_write,char News[]);
+void display_uart(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -106,7 +107,6 @@ void FLASH_WriteNews(uint32_t addr_start_write,char News[]);
   * @brief  The application entry point.
   * @retval int
   */
-int16_t *ptr;
 int main(void)
 {
   /* USER CODE BEGIN 1 */
@@ -148,7 +148,7 @@ int main(void)
 
 	
   /* USER CODE END 2 */
-ptr=&Tem;
+
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -163,18 +163,7 @@ ptr=&Tem;
 //			sprintf(Tem_Humi,"T1:%d  H1:%d|T2:%d  H2:%d       ",Tem, Humi, temRx, humiRx);
 //			HAL_UART_Transmit(&huart3, (uint8_t *)Tem_Humi, (uint16_t)strlen(Tem_Humi), 1000);
 //			HAL_UART_Transmit(&huart3,(uint8_t *)"\r",(uint16_t)strlen("\r"),1000);
-			sprintf(Tem_Uart_1,"T1:%d | T2:%d | T3:%d | T4:%d | T5:%d",T[0],T[1],T[2],T[3],T[4]);
-			HAL_UART_Transmit(&huart3, (uint8_t *)Tem_Uart_1, (uint16_t)strlen(Tem_Uart_1), 1000);
-			HAL_UART_Transmit(&huart3,(uint8_t *)"\r",(uint16_t)strlen("\r"),1000);
-			HAL_Delay(50);
-			sprintf(Tem_Uart_2,"T6:%d | T7:%d | T8:%d | T9:%d | T10:%d",T[5],T[6],T[7],T[8],T[9]);
-			HAL_UART_Transmit(&huart3, (uint8_t *)Tem_Uart_2, (uint16_t)strlen(Tem_Uart_2), 1000);
-			HAL_UART_Transmit(&huart3,(uint8_t *)"\r\n",(uint16_t)strlen("\r\n"),1000);
-			
-//			sprintf(Tem_Humi,"H1:%d | H2:%d | H3:%d | H4:%d | H5:%d | H6:%d | H7:%d | H8:%d | H9:%d | H10:%d ",H[0],H[1],H[2],H[3],H[4],H[5],H[6],H[7],H[8],H[9]);
-//			HAL_UART_Transmit(&huart3, (uint8_t *)Tem_Humi, (uint16_t)strlen(Tem_Humi), 1000);
-//			HAL_UART_Transmit(&huart3,(uint8_t *)"\r",(uint16_t)strlen("\r"),1000);
-			
+			display_uart();
 			aTemperature[0] = Tem >> 8;
 			aTemperature[1] = Tem ;
 			aHumidity[0] = 0x00;
@@ -183,7 +172,7 @@ ptr=&Tem;
 		}
 		
 		if(getTick_transmit_uart >HAL_GetTick()) getTick_transmit_uart=0;
-		if(HAL_GetTick()- getTick_transmit_uart > 100) 
+		if(HAL_GetTick()- getTick_transmit_uart > 300) 
 		{
 			uint8_t Frame[8];
 			sData sFrame;
@@ -434,11 +423,12 @@ uint8_t Modbus_RTU_Master(void)
 				{
 					temRx= sUart2.sim_rx[3]<<8 | sUart2.sim_rx[4];
 					humiRx= sUart2.sim_rx[9]<<8 | sUart2.sim_rx[10];
-					Delete_Buffer(&sUart2);
-					return addressRx;
 				}
 			}
+			Delete_Buffer(&sUart2);
+			return addressRx;
 		}
+		Delete_Buffer(&sUart2);
 	}
 	return 0;
 }
@@ -500,6 +490,110 @@ void FLASH_Earse(uint32_t addr_ready_earse)
 	uint32_t PageError = 0;
 	HAL_FLASHEx_Erase(&EraseInit, &PageError);
   HAL_FLASH_Lock();
+}
+
+void display_uart(void)
+{
+	int16_t max_tem=0; 
+	int16_t min_tem=0;
+	
+	int16_t max_humi=0;
+	int16_t min_humi=0;
+	
+	count++;
+	sprintf(Tem_Humi,"T1:%d | T2:%d | T3:%d | T4:%d | T5:%d",T[0],T[1],T[2],T[3],T[4]);
+	HAL_UART_Transmit(&huart3, (uint8_t *)Tem_Humi, (uint16_t)strlen(Tem_Humi), 1000);
+	HAL_UART_Transmit(&huart3,(uint8_t *)"\r",(uint16_t)strlen("\r"),1000);
+	
+	sprintf(Tem_Humi,"T6:%d | T7:%d | T8:%d | T9:%d | T10:%d",T[5],T[6],T[7],T[8],T[9]);
+	HAL_UART_Transmit(&huart3, (uint8_t *)Tem_Humi, (uint16_t)strlen(Tem_Humi), 1000);
+	HAL_UART_Transmit(&huart3,(uint8_t *)"\r\n",(uint16_t)strlen("\r\n"),1000);
+	
+	HAL_UART_Transmit(&huart3,(uint8_t *)"\r\n",(uint16_t)strlen("\r\n"),1000);
+	
+	sprintf(Tem_Humi,"H1:%d | H2:%d | H3:%d | H4:%d | H5:%d ",H[0],H[1],H[2],H[3],H[4]);
+	HAL_UART_Transmit(&huart3, (uint8_t *)Tem_Humi, (uint16_t)strlen(Tem_Humi), 1000);
+	HAL_UART_Transmit(&huart3,(uint8_t *)"\r\n",(uint16_t)strlen("\r\n"),1000);
+				
+	sprintf(Tem_Humi,"H6:%d | H7:%d | H8:%d | H9:%d | H10:%d ",H[5],H[6],H[7],H[8],H[9]);
+	HAL_UART_Transmit(&huart3, (uint8_t *)Tem_Humi, (uint16_t)strlen(Tem_Humi), 1000);
+	HAL_UART_Transmit(&huart3,(uint8_t *)"\r\n",(uint16_t)strlen("\r\n"),1000);
+	
+	HAL_UART_Transmit(&huart3,(uint8_t *)"\r\n",(uint16_t)strlen("\r\n"),1000);
+	
+	uint16_t average_tem=0;
+	uint16_t average_humi=0;
+	uint8_t count_tem=0;
+	uint8_t count_humi=0;
+	for(uint8_t i=0;i<10;i++)
+	{
+		if(T[i]>0 ) 
+		{
+			min_tem=T[i];
+			count_tem++;
+			average_tem = average_tem + T[i];
+		}
+		
+		if(H[i]>0 ) 
+		{
+			min_humi=H[i];
+			count_humi++;
+			average_humi = average_humi + H[i];
+		}
+	}
+	if(count_tem>0) average_tem = average_tem/count_tem;
+	if(count_humi>0) average_humi = average_humi/count_humi;
+	
+	for(uint8_t i=0; i<10;i++)
+	{
+		if(count_tem > 0)
+		{
+			if(T[i]>0)
+			{
+				AVG_T[i] = average_tem - T[i];
+				if(T[i] > max_tem) max_tem = T[i];
+				if(T[i] < min_tem) min_tem = T[i];
+			}
+		}
+		
+		if(count_humi > 0)
+		{
+			if(H[i]>0 )
+			{
+				AVG_H[i] = average_humi - H[i];
+				if(H[i] > max_humi) max_humi = H[i];
+				if(H[i] < min_humi) min_humi = H[i];
+			}
+		}
+	}
+	
+	sprintf(Tem_Humi,"Average_Tem:%d      Average_Humi:%d", average_tem, average_humi);
+	HAL_UART_Transmit(&huart3, (uint8_t *)Tem_Humi, (uint16_t)strlen(Tem_Humi), 1000);
+	HAL_UART_Transmit(&huart3,(uint8_t *)"\r\n",(uint16_t)strlen("\r\n"),1000);
+	
+//	sprintf(Tem_Humi,"T1:%d | T2:%d | T3:%d | T4:%d | T5:%d",AVG_T[0],AVG_T[1],AVG_T[2],AVG_T[3],AVG_T[4]);
+//	HAL_UART_Transmit(&huart3, (uint8_t *)Tem_Humi, (uint16_t)strlen(Tem_Humi), 1000);
+//	HAL_UART_Transmit(&huart3,(uint8_t *)"\r",(uint16_t)strlen("\r"),1000);
+//	
+//	sprintf(Tem_Humi,"T6:%d | T7:%d | T8:%d | T9:%d | T10:%d",AVG_T[5],AVG_T[6],AVG_T[7],AVG_T[8],AVG_T[9]);
+//	HAL_UART_Transmit(&huart3, (uint8_t *)Tem_Humi, (uint16_t)strlen(Tem_Humi), 1000);
+//	HAL_UART_Transmit(&huart3,(uint8_t *)"\r\n",(uint16_t)strlen("\r\n"),1000);
+//	
+//	sprintf(Tem_Humi,"H1:%d | H2:%d | H3:%d | H4:%d | H5:%d ",AVG_H[0],AVG_H[1],AVG_H[2],AVG_H[3],AVG_H[4]);
+//	HAL_UART_Transmit(&huart3, (uint8_t *)Tem_Humi, (uint16_t)strlen(Tem_Humi), 1000);
+//	HAL_UART_Transmit(&huart3,(uint8_t *)"\r\n",(uint16_t)strlen("\r\n"),1000);
+//				
+//	sprintf(Tem_Humi,"H6:%d | H7:%d | H8:%d | H9:%d | H10:%d ",AVG_H[5],AVG_H[6],AVG_H[7],AVG_H[8],AVG_H[9]);
+//	HAL_UART_Transmit(&huart3, (uint8_t *)Tem_Humi, (uint16_t)strlen(Tem_Humi), 1000);
+//	HAL_UART_Transmit(&huart3,(uint8_t *)"\r\n",(uint16_t)strlen("\r\n"),1000);
+	
+	sprintf(Tem_Humi,"Tmax-Tmin:%d      Hmax-Hmin:%d",max_tem - min_tem , max_humi- min_humi);
+	HAL_UART_Transmit(&huart3, (uint8_t *)Tem_Humi, (uint16_t)strlen(Tem_Humi), 1000);
+	HAL_UART_Transmit(&huart3,(uint8_t *)"\r\n",(uint16_t)strlen("\r\n"),1000);
+	
+	sprintf(Tem_Humi,"-----------------------%d------------------------",count);
+	HAL_UART_Transmit(&huart3, (uint8_t *)Tem_Humi, (uint16_t)strlen(Tem_Humi), 1000);
+	HAL_UART_Transmit(&huart3,(uint8_t *)"\r\n",(uint16_t)strlen("\r\n"),1000);
 }
 
 /* USER CODE END 4 */
