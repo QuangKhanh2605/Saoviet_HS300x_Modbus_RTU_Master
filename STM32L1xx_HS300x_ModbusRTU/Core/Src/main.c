@@ -81,7 +81,7 @@ int16_t AVG_H[10]={0,0,0,0,0,0,0,0,0,0};
 uint32_t getTick_transmit_uart=0;
 uint8_t address_Tx=26;
 uint32_t count=0;
-char Tem_Humi[33];
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -492,6 +492,7 @@ void FLASH_Earse(uint32_t addr_ready_earse)
   HAL_FLASH_Lock();
 }
 
+char Tem_Humi[33];
 void display_uart(void)
 {
 	int16_t max_tem=0; 
