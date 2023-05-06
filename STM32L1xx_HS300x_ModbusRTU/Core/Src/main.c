@@ -62,6 +62,9 @@ uint8_t check_GetTick_Ms=0;
 int16_t Tem=0;
 int16_t Humi=0;
 
+int16_t Drop_Tem=0;
+int16_t Drop_Humi=0;
+
 uint8_t aTemperature[2];
 uint8_t aHumidity[2];
 
@@ -110,6 +113,8 @@ void display_uart(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
+
+
 	sUart2.huart = &huart2;
   /* USER CODE END 1 */
 
@@ -145,7 +150,6 @@ int main(void)
 //			address=i;
 //		}
 //	
-
 	
   /* USER CODE END 2 */
 
@@ -159,7 +163,7 @@ int main(void)
 		if(GetTick_Ms>HAL_GetTick()) GetTick_Ms=0;
 		if(HAL_GetTick()-GetTick_Ms>Time_Sampling) 
 		{
-			HS300X_Start_Measurement(&hi2c2, (int16_t*)&Tem, (int16_t*)&Humi);
+//			HS300X_Start_Measurement(&hi2c2, (int16_t*)&Tem, (int16_t*)&Humi);
 //			sprintf(Tem_Humi,"T1:%d  H1:%d|T2:%d  H2:%d       ",Tem, Humi, temRx, humiRx);
 //			HAL_UART_Transmit(&huart3, (uint8_t *)Tem_Humi, (uint16_t)strlen(Tem_Humi), 1000);
 //			HAL_UART_Transmit(&huart3,(uint8_t *)"\r",(uint16_t)strlen("\r"),1000);
@@ -172,8 +176,11 @@ int main(void)
 		}
 		
 		if(getTick_transmit_uart >HAL_GetTick()) getTick_transmit_uart=0;
-		if(HAL_GetTick()- getTick_transmit_uart > 300) 
+		if(HAL_GetTick()- getTick_transmit_uart > 100) 
 		{
+			HS300X_Start_Measurement(&hi2c2, (int16_t*)&Tem, (int16_t*)&Humi);
+			Tem  = Tem  + Drop_Tem;
+			Humi = Humi + Drop_Humi;
 			uint8_t Frame[8];
 			sData sFrame;
 			sFrame.Data_a8 = Frame;
@@ -588,6 +595,10 @@ void display_uart(void)
 //	HAL_UART_Transmit(&huart3,(uint8_t *)"\r\n",(uint16_t)strlen("\r\n"),1000);
 	
 	sprintf(Tem_Humi,"Tmax-Tmin:%d      Hmax-Hmin:%d",max_tem - min_tem , max_humi- min_humi);
+	HAL_UART_Transmit(&huart3, (uint8_t *)Tem_Humi, (uint16_t)strlen(Tem_Humi), 1000);
+	HAL_UART_Transmit(&huart3,(uint8_t *)"\r\n",(uint16_t)strlen("\r\n"),1000);
+	
+	sprintf(Tem_Humi,"Master_Tem:%d      Humi_Tem:%d",Tem , Humi);
 	HAL_UART_Transmit(&huart3, (uint8_t *)Tem_Humi, (uint16_t)strlen(Tem_Humi), 1000);
 	HAL_UART_Transmit(&huart3,(uint8_t *)"\r\n",(uint16_t)strlen("\r\n"),1000);
 	

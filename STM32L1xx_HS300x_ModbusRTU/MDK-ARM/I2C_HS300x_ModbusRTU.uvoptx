@@ -195,6 +195,11 @@
           <WinNumber>1</WinNumber>
           <ItemText>Tem_Humi</ItemText>
         </Ww>
+        <Ww>
+          <count>9</count>
+          <WinNumber>1</WinNumber>
+          <ItemText>c,0x0A</ItemText>
+        </Ww>
       </WatchWindow1>
       <MemoryWindow1>
         <Mm>
