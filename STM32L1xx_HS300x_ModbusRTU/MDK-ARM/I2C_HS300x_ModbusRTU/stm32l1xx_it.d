@@ -21,6 +21,8 @@ i2c_hs300x_modbusrtu\stm32l1xx_it.o: ../Drivers/STM32L1xx_HAL_Driver/Inc/stm32l1
 i2c_hs300x_modbusrtu\stm32l1xx_it.o: ../Drivers/STM32L1xx_HAL_Driver/Inc/stm32l1xx_hal_gpio_ex.h
 i2c_hs300x_modbusrtu\stm32l1xx_it.o: ../Drivers/STM32L1xx_HAL_Driver/Inc/stm32l1xx_hal_dma.h
 i2c_hs300x_modbusrtu\stm32l1xx_it.o: ../Drivers/STM32L1xx_HAL_Driver/Inc/stm32l1xx_hal_cortex.h
+i2c_hs300x_modbusrtu\stm32l1xx_it.o: ../Drivers/STM32L1xx_HAL_Driver/Inc/stm32l1xx_hal_adc.h
+i2c_hs300x_modbusrtu\stm32l1xx_it.o: ../Drivers/STM32L1xx_HAL_Driver/Inc/stm32l1xx_hal_adc_ex.h
 i2c_hs300x_modbusrtu\stm32l1xx_it.o: ../Drivers/STM32L1xx_HAL_Driver/Inc/stm32l1xx_hal_flash.h
 i2c_hs300x_modbusrtu\stm32l1xx_it.o: ../Drivers/STM32L1xx_HAL_Driver/Inc/stm32l1xx_hal_flash_ex.h
 i2c_hs300x_modbusrtu\stm32l1xx_it.o: ../Drivers/STM32L1xx_HAL_Driver/Inc/stm32l1xx_hal_flash_ramfunc.h

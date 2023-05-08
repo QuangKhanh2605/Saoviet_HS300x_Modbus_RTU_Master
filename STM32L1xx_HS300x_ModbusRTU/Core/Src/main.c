@@ -48,6 +48,8 @@ Add "HAL_SYSTICK_IRQHandler();" To "Systick_Handler" In "stm32L1xx_it.c"
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+ADC_HandleTypeDef hadc;
+
 I2C_HandleTypeDef hi2c2;
 
 UART_HandleTypeDef huart2;
@@ -85,6 +87,9 @@ uint32_t getTick_transmit_uart=0;
 uint8_t address_Tx=26;
 uint32_t count=0;
 char Tem_Humi[50];
+
+float tem_stm=0.0;
+float adc=0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -93,6 +98,7 @@ static void MX_GPIO_Init(void);
 static void MX_I2C2_Init(void);
 static void MX_USART3_UART_Init(void);
 static void MX_USART2_UART_Init(void);
+static void MX_ADC_Init(void);
 /* USER CODE BEGIN PFP */
 void HAL_SYSTICK_Callback(void);
 uint8_t Modbus_RTU_Master(void);
@@ -103,7 +109,9 @@ void display_uart(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+float avg_tem=0.0;
+float tem_stm32=0.0;
+uint16_t adcRead=0;
 /* USER CODE END 0 */
 
 /**
@@ -139,7 +147,9 @@ int main(void)
   MX_I2C2_Init();
   MX_USART3_UART_Init();
   MX_USART2_UART_Init();
+  MX_ADC_Init();
   /* USER CODE BEGIN 2 */
+	HAL_ADC_Start(&hadc);
 	HAL_UART_Receive_IT(sUart2.huart,&sUart2.buffer,1);
 	HAL_GPIO_WritePin(GPIOB, GPIO_PIN_12, GPIO_PIN_RESET);
 	//HS300X_Init(&hi2c1, TM, HU);
@@ -150,7 +160,19 @@ int main(void)
 //			address=i;
 //		}
 //	
-	
+	while(1)
+	{
+		avg_tem=0;
+		for(int i=0; i<5;i++)
+		{
+			HAL_ADC_PollForConversion(&hadc, 1000);
+			adcRead = HAL_ADC_GetValue(&hadc);
+			//adcRead = adcRead*3;
+			avg_tem +=  (float)(((0.6268-3.3/4096*adcRead)/0.00161)+25);
+			HAL_Delay(20);
+		}
+		tem_stm32 =  avg_tem/5;
+	}
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -271,6 +293,61 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief ADC Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_ADC_Init(void)
+{
+
+  /* USER CODE BEGIN ADC_Init 0 */
+
+  /* USER CODE END ADC_Init 0 */
+
+  ADC_ChannelConfTypeDef sConfig = {0};
+
+  /* USER CODE BEGIN ADC_Init 1 */
+
+  /* USER CODE END ADC_Init 1 */
+
+  /** Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
+  */
+  hadc.Instance = ADC1;
+  hadc.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
+  hadc.Init.Resolution = ADC_RESOLUTION_12B;
+  hadc.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hadc.Init.ScanConvMode = ADC_SCAN_DISABLE;
+  hadc.Init.EOCSelection = ADC_EOC_SEQ_CONV;
+  hadc.Init.LowPowerAutoWait = ADC_AUTOWAIT_DISABLE;
+  hadc.Init.LowPowerAutoPowerOff = ADC_AUTOPOWEROFF_DISABLE;
+  hadc.Init.ChannelsBank = ADC_CHANNELS_BANK_A;
+  hadc.Init.ContinuousConvMode = ENABLE;
+  hadc.Init.NbrOfConversion = 1;
+  hadc.Init.DiscontinuousConvMode = DISABLE;
+  hadc.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+  hadc.Init.DMAContinuousRequests = DISABLE;
+  if (HAL_ADC_Init(&hadc) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
+  */
+  sConfig.Channel = ADC_CHANNEL_TEMPSENSOR;
+  sConfig.Rank = ADC_REGULAR_RANK_1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_192CYCLES;
+  if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN ADC_Init 2 */
+
+  /* USER CODE END ADC_Init 2 */
+
 }
 
 /**
