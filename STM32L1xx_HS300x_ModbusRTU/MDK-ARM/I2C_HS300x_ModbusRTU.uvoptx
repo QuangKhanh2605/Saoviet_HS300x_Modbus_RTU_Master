@@ -198,17 +198,7 @@
         <Ww>
           <count>9</count>
           <WinNumber>1</WinNumber>
-          <ItemText>c,0x0A</ItemText>
-        </Ww>
-        <Ww>
-          <count>10</count>
-          <WinNumber>1</WinNumber>
           <ItemText>tem_stm32</ItemText>
-        </Ww>
-        <Ww>
-          <count>11</count>
-          <WinNumber>1</WinNumber>
-          <ItemText>adcRead,0x0A</ItemText>
         </Ww>
       </WatchWindow1>
       <MemoryWindow1>

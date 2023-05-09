@@ -160,19 +160,19 @@ int main(void)
 //			address=i;
 //		}
 //	
-	while(1)
-	{
-		avg_tem=0;
-		for(int i=0; i<5;i++)
-		{
-			HAL_ADC_PollForConversion(&hadc, 1000);
-			adcRead = HAL_ADC_GetValue(&hadc);
-			//adcRead = adcRead*3;
-			avg_tem +=  (float)(((0.6268-3.3/4096*adcRead)/0.00161)+25);
-			HAL_Delay(20);
-		}
-		tem_stm32 =  avg_tem/5;
-	}
+//	while(1)
+//	{
+//		avg_tem=0;
+//		for(int i=0; i<5;i++)
+//		{
+//			HAL_ADC_PollForConversion(&hadc, 1000);
+//			adcRead = HAL_ADC_GetValue(&hadc);
+//			//adcRead = adcRead*3;
+//			avg_tem +=  (float)(((0.6268-3.3/4096*adcRead)/0.00161)-44);
+//			HAL_Delay(20);
+//		}
+//		tem_stm32 =  avg_tem/5;
+//	}
   /* USER CODE END 2 */
 
   /* Infinite loop */
