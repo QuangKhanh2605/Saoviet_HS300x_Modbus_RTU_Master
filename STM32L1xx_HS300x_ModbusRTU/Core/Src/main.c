@@ -491,6 +491,7 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
 uint8_t Modbus_RTU_Master(void)
 {
 	if(Check_CountBuffer_Complete_Uart(&sUart2)==1)
