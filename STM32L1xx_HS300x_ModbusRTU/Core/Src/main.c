@@ -30,6 +30,7 @@ Add "HAL_SYSTICK_IRQHandler();" To "Systick_Handler" In "stm32L1xx_it.c"
 #include "HS300x.h"
 #include "user_uart.h"
 #include "user_modbus_rtu.h"
+#include "math.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -70,12 +71,15 @@ int16_t Drop_Humi=0;
 uint8_t aTemperature[2];
 uint8_t aHumidity[2];
 
-uint16_t temRx=0;
-uint16_t humiRx=0;
+int16_t temRx=0;
+int16_t humiRx=0;
 
 uint8_t address=0;
 
-UART_BUFFER sUart2;
+UART_BUFFER sUart2=
+{
+	.huart = &huart2,
+};
 uint8_t check_address_slave = 0;
 uint16_t T[10]={0};
 uint16_t H[10]={0};
@@ -118,12 +122,12 @@ uint16_t adcRead=0;
   * @brief  The application entry point.
   * @retval int
   */
+	uint32_t c=0;
+	float f=-10.5;
 int main(void)
 {
   /* USER CODE BEGIN 1 */
 
-
-	sUart2.huart = &huart2;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/

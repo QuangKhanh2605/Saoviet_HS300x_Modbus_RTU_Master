@@ -36,3 +36,4 @@ i2c_hs300x_modbusrtu\main.o: ../Drivers/Mylib/Inc/HS300x.h
 i2c_hs300x_modbusrtu\main.o: ../Drivers/Mylib/Inc/user_uart.h
 i2c_hs300x_modbusrtu\main.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\string.h
 i2c_hs300x_modbusrtu\main.o: ../Drivers/Mylib/Inc/user_modbus_rtu.h
+i2c_hs300x_modbusrtu\main.o: C:\Keil_v5\ARM\ARMCC\Bin\..\include\math.h
