@@ -3,7 +3,6 @@
 uint16_t check_countBuffer_uart=0;
 uint32_t Get_systick_countBuffer_uart=0;
 uint16_t State_systick_countBuffer_uart=0;
-uint16_t a=0;
 
 int8_t Check_CountBuffer_Complete_Uart(UART_BUFFER *rx_uart)
 {
@@ -45,7 +44,6 @@ void Delete_Buffer(UART_BUFFER *rx_uart)
 	int len = rx_uart->countBuffer;
 	rx_uart->countBuffer=0;
 	rx_uart->buffer=0x00;
-	a=len;
 	for(int i = 0; i < len; i++)
 	{
 		rx_uart->sim_rx[i] = 0x00;

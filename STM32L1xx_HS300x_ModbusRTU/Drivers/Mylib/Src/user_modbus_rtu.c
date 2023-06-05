@@ -1,5 +1,5 @@
 /*
-- Quy dinh giao thuc Modbus RTU cho ca Master và Slave: BKAII
+- Quy dinh giao thuc Modbus RTU cho ca Master và Slave: BKAII 
 - Giao thuc Modbus RTU: 
    * Mot ban tin Modbus RTU bao gom: 1 byte dia chi  -  1 byte mã hàm - n byte du lieu - 2 byte CRC
    * Chuc nang và vai trò cu the nhu sau:
